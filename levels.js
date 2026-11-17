@@ -24,7 +24,7 @@
 
   // 1 ─ Thornbound: move, jump, first Sacrifice
   L.push({ name: 'Thornbound', wing: 0, par: 1, maxEchoes: 3,
-    intro: 'The Thornbrand curse will not let you die. Each death leaves an Echo behind.',
+    intro: 'The Thornbrand curse will not let you die. Where you fall, an Echo forms: solid stone you can climb.',
     hint: 'Stand next to the tall wall and press X (or the skull button) to Sacrifice. Then jump onto your Echo.',
     tips: [{ x: 4, y: 11, text: '\u2190 \u2192  move' }, { x: 11, y: 10, text: 'SPACE  jump' },
       { x: 20, y: 8, text: 'Too high? Press X to Sacrifice.\nYour Echo stays behind.' }, { x: 31, y: 7, text: 'Climb upon your past self.' }],
@@ -56,17 +56,17 @@
   L.push({ name: 'Iron Rain', wing: 1, par: 1, maxEchoes: 3,
     hint: 'Duck into the trenches as arrows pass. Sacrifice at the far end: your Echo will block the arrows for good.',
     tips: [{ x: 2, y: 9, text: 'Echoes stop arrows.' }],
-    launchers: [{ period: 120, offset: 40, speed: 3 }],
+    launchers: [{ period: 150, offset: 50, speed: 2.6 }],
     map: B(40, 17).r(0, 15, 39, 16).r(1, 1, 31, 11).r(1, 7, 6, 11, '.').r(11, 15, 12, 15, '.').r(18, 15, 19, 15, '.').r(25, 15, 26, 15, '.')
       .r(36, 11, 38, 11).p(38, 13, '<').r(1, 13, 4, 14).p(2, 12, 'P').p(37, 10, 'E').t([[3, 9], [34, 6]]).done() });
 
-  // 6 ─ The Lift Engine: plate-driven lift, timed by an Echo
+  // 6 ─ The Lift Engine: a plate-driven lift raises a bridge out of the abyss
   L.push({ name: 'The Lift Engine', wing: 1, par: 1, maxEchoes: 2,
-    hint: 'Hold the plate to lower the lift. Your Echo can hold it for you, then step off just as you board.',
-    tips: [{ x: 5, y: 10, text: 'The plate lowers the lift.' }],
-    movers: { 1: { dx: 0, dy: 9, speed: 1.6, plate: 'a', w: 2 } },
-    map: B(34, 17).r(0, 15, 33, 16).p(3, 14, 'a').r(16, 15, 17, 16, '.').p(16, 6, '1').r(18, 7, 32, 7).p(30, 6, 'E').p(6, 14, 'P')
-      .t([[9, 10], [21, 4], [27, 4]]).done() });
+    hint: 'The plate raises the bridge, but it sinks the moment you step off. Sacrifice on the plate so your Echo holds it up for good.',
+    tips: [{ x: 5, y: 10, text: 'The plate drives the lift engine.' }, { x: 14, y: 11, text: 'The abyss keeps no Echo.' }],
+    movers: { 1: { at: [10, 17], dx: 0, dy: -2, speed: 1, plate: 'a', w: 6 } },
+    map: B(34, 17).r(0, 15, 33, 16).r(10, 15, 15, 16, '.').p(5, 14, 'a').p(2, 14, 'P').p(30, 14, 'E')
+      .t([[4, 10], [12, 9], [20, 10], [27, 10]]).done() });
 
   // 7 ─ Frozen in Air: an Echo freezes where it ended, even mid-air
   L.push({ name: 'Frozen in Air', wing: 1, par: 1, maxEchoes: 2,
@@ -85,33 +85,37 @@
       .r(34, 1, 35, 10).r(34, 11, 34, 14, 'B').p(3, 14, 'P').p(40, 14, 'E')
       .t([[9, 10], [22, 10], [31, 10], [39, 10]]).done() });
 
-  // 9 ─ Ride the Past: stand on an Echo while it jumps
-  L.push({ name: 'Ride the Past', wing: 2, par: 1, maxEchoes: 1,
-    hint: 'Wait by the cliff, jump straight up, land, then Sacrifice. Next time stand on your Echo before it jumps, and leap from the top.',
-    tips: [{ x: 4, y: 10, text: 'Only one Echo may linger here.\nIt repeats all you did.' }],
-    map: B(30, 17).r(0, 15, 29, 16).r(18, 8, 29, 16).p(3, 14, 'P').p(26, 7, 'E').t([[8, 10], [14, 9], [22, 4]]).done() });
+  // 9 ─ One Shadow Only: a single Echo must do two jobs at once
+  L.push({ name: 'One Shadow Only', wing: 2, par: 1, maxEchoes: 1,
+    hint: 'Only one Echo may linger. Sacrifice on the plate at the foot of the wall: it holds the seal AND it is your stair.',
+    tips: [{ x: 4, y: 10, text: 'Only one Echo may linger here.\nMake it count twice.' }],
+    map: B(30, 17).r(0, 15, 29, 16).r(18, 10, 29, 16).p(17, 14, 'a').r(24, 1, 25, 5).r(24, 6, 24, 9, 'A')
+      .p(3, 14, 'P').p(27, 9, 'E').t([[7, 10], [13, 9], [21, 6], [28, 6]]).done() });
 
-  // 10 ─ Inverted Seal: an Echo that holds a plate for a while, then leaves
-  L.push({ name: 'Inverted Seal', wing: 2, par: 1, maxEchoes: 2,
-    hint: 'The plate opens the far gate but shuts the near one. Let your Echo reach the plate late, after you are through.',
-    tips: [{ x: 3, y: 10, text: 'Some seals answer in reverse.' }],
-    gates: { B: { invert: true, plates: ['a'] }, A: { plates: ['a'] } },
-    map: B(34, 17).r(0, 15, 33, 16).r(1, 1, 32, 10).r(1, 7, 5, 10, '.').p(8, 14, 'a').r(14, 11, 14, 14, 'B').r(24, 11, 24, 14, 'A')
-      .p(3, 14, 'P').p(30, 14, 'E').t([[3, 8], [11, 12], [19, 12], [28, 12]]).done() });
+  // 10 ─ Inverted Seal: the plate opens the door but drops the bridge
+  L.push({ name: 'Inverted Seal', wing: 2, par: 2, maxEchoes: 3,
+    hint: 'Cross while the bridge stands and Sacrifice on the plate. The bridge will be gone next time, so leap into the middle of the thorn pit: that Echo is your new bridge.',
+    tips: [{ x: 4, y: 10, text: 'This seal opens the door\u2026\nbut it drops the bridge.' }],
+    movers: { 1: { at: [10, 15], dx: 0, dy: 2, speed: 1.5, plate: 'a', w: 6 } },
+    map: B(34, 17).r(0, 15, 33, 16).r(10, 15, 15, 16, '.').r(10, 16, 15, 16, '^').p(20, 14, 'a')
+      .r(24, 1, 25, 10).r(24, 11, 24, 14, 'A').p(3, 14, 'P').p(30, 14, 'E')
+      .t([[6, 10], [12, 9], [18, 10], [28, 11]]).done() });
 
   // 11 ─ Gauntlet of Hours: arrows, then a climb that needs two Echoes
   L.push({ name: 'Gauntlet of Hours', wing: 2, par: 2, maxEchoes: 3,
     hint: 'Reach the shaft and Sacrifice: that Echo shields the hall. Then stand on it and Sacrifice again to build a stair.',
-    launchers: [{ period: 130, offset: 30, speed: 3 }],
+    launchers: [{ period: 160, offset: 40, speed: 2.6 }],
     map: B(40, 17).r(0, 15, 39, 16).r(1, 1, 31, 11).r(1, 7, 6, 11, '.').r(11, 15, 12, 15, '.').r(18, 15, 19, 15, '.').r(25, 15, 26, 15, '.')
       .r(36, 9, 38, 11).p(38, 13, '<').r(32, 1, 38, 2).p(37, 8, 'E').r(1, 13, 4, 14).p(2, 12, 'P').r(33, 3, 34, 3, 'v')
       .t([[3, 9], [9, 13], [22, 13], [35, 5]]).done() });
 
-  // 12 ─ The Spire Crown: plate + a cliff that rewards the vault
+  // 12 ─ The Spire Crown: a held seal, then a statue left hanging over the thorns
   L.push({ name: 'The Spire Crown', wing: 2, par: 2, maxEchoes: 4,
-    hint: 'Hold the seal with one Echo. For the cliff, ride an Echo as it jumps: stacking works too, but costs more.',
-    map: B(40, 17).r(0, 15, 39, 16).p(5, 14, 'a').r(12, 1, 13, 10).r(12, 11, 12, 14, 'A').r(26, 7, 39, 16).r(30, 5, 39, 6, '.')
-      .p(3, 14, 'P').p(36, 6, 'E').t([[8, 10], [17, 9], [22, 6], [33, 3]]).done() });
+    hint: 'Hold the seal with one Echo. Then ride the lift to the top and Sacrifice there: your Echo hangs in the air as a step to the crown. Stacking on the thorns works too, but costs more.',
+    tips: [{ x: 16, y: 10, text: 'The last climb.' }],
+    movers: { 1: { at: [20, 15], dx: 6, dy: -3, speed: 0.9, wait: 50 } },
+    map: B(40, 17).r(0, 15, 39, 16).p(5, 14, 'a').r(12, 1, 13, 10).r(12, 11, 12, 14, 'A').r(20, 15, 28, 15, '^').r(29, 7, 39, 16)
+      .p(3, 14, 'P').p(36, 6, 'E').t([[8, 10], [17, 9], [24, 7], [33, 3]]).done() });
 
   var api = { levels: L, wings: WINGS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.EchoLevels = api;

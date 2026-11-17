@@ -78,15 +78,22 @@
     Object.keys(L.gates).forEach(function (k) { L.gates[k].open = L.gates[k].invert ? 1 : 0; });
     L.movers.forEach(function (m) { m.p = 0; m.x = m.x0; m.y = m.y0; m.ddx = 0; m.ddy = 0; });
     L.plates.forEach(function (pl) { pl.pressed = false; });
-    this.echoes.forEach(function (e) { e.idx = 0; e.x = e.rec[0][0]; e.y = e.rec[0][1]; e.ddx = 0; e.ddy = 0; e.frozen = false; e.gone = false; });
+    this.echoes.forEach(function (e) { e.idx = 0; e.x = e.rec[0][0]; e.y = e.rec[0][1]; e.ddx = 0; e.ddy = 0; e.frozen = true; e.gone = e.cause === 'pit'; });
     this.updatePlates();
     this.updateGates(true);
   };
 
-  // convert the current attempt to an echo (cause: 'death' | 'pit' | 'sacrifice')
+  // The pose an Echo takes when it forms: exactly where (and how) this attempt ended.
+  W.echoFrame = function (cause) {
+    var p = this.p, last = this.rec[this.rec.length - 1] || [p.x, p.y, 0, p.flip ? 1 : 0, 0];
+    var st = cause === 'sacrifice' ? STATES.indexOf('kneel') : (last[2] === STATES.indexOf('dead') ? 0 : last[2]);
+    return [Math.round(p.x * 100) / 100, Math.round(p.y * 100) / 100, st, p.flip ? 1 : 0, cause === 'sacrifice' ? 0 : last[4]];
+  };
+  // turn the attempt that just ended into an Echo (cause: 'death' | 'pit' | 'sacrifice').
+  // Echoes no longer replay the attempt: they form at the spot it ended and are stone from the first frame.
   W.commitEcho = function (cause) {
-    if (this.rec.length < 2) this.rec.push(this.rec[0] || [this.p.x, this.p.y, 0, 0, 0]);
-    var e = { rec: this.rec, cause: cause, idx: 0, x: this.rec[0][0], y: this.rec[0][1], frozen: false, gone: false, id: this.echoesUsed };
+    var f = this.echoFrame(cause);
+    var e = { rec: [f], cause: cause, idx: 0, x: f[0], y: f[1], ddx: 0, ddy: 0, frozen: true, gone: cause === 'pit', id: this.echoesUsed };
     this.echoes.push(e);
     this.echoesUsed++;
     var removed = null;
@@ -180,15 +187,8 @@
   };
 
   W.updateEchoes = function () {
-    var t = this.t;
-    this.echoes.forEach(function (e) {
-      var n = e.rec.length, i = Math.min(t, n - 1), f = e.rec[i];
-      e.ddx = f[0] - e.x; e.ddy = f[1] - e.y; e.x = f[0]; e.y = f[1]; e.idx = i;
-      var wasFrozen = e.frozen;
-      e.frozen = t >= n - 1;
-      if (e.frozen && e.cause === 'pit') e.gone = true;
-      if (e.frozen && !wasFrozen) e.justFroze = true;
-    });
+    // Echoes are static stone: they hold their pose where they formed.
+    this.echoes.forEach(function (e) { e.ddx = 0; e.ddy = 0; e.idx = 0; e.frozen = true; if (e.cause === 'pit') e.gone = true; });
   };
 
   W.updateArrows = function () {

@@ -4,6 +4,7 @@
   var VW = 960, VH = 540, ZOOM = 2, STEP = 1000 / 60;
   var SIM = window.EchoSim, LV = window.EchoLevels, LEVELS = LV.levels, WINGS = LV.wings, P = SIM.P;
   var GOLD = '#ffd27a', PALE = '#e9dcff', DIM = '#9d8cbf', CYAN = '#8ff3ff';
+  var ECHO_STONE = 0x9fb6d2; // tint of an Echo once it has turned to stone
   var ROMAN = ['I', 'II', 'III'];
 
   // ---------------- save ----------------
@@ -223,6 +224,14 @@
   function shade(v, theme) {
     var m = THEME_MUL[theme], r = Math.min(255, Math.round(255 * v * m[0])), g = Math.min(255, Math.round(255 * v * m[1])), b = Math.min(255, Math.round(255 * v * m[2]));
     return (r << 16) | (g << 8) | b;
+  }
+  // drain colour from an Echo sprite so it reads as carved stone (WebGL only; tint alone on canvas)
+  function petrify(scene, spr, ms) {
+    if (!spr.preFX || spr._stone) return;
+    var cm = spr._stone = spr.preFX.addColorMatrix();
+    if (!ms) { cm.grayscale(0.9); return; }
+    var o = { k: 0 };
+    scene.tweens.add({ targets: o, k: 0.9, duration: ms, onUpdate: function () { cm.grayscale(o.k); } });
   }
   function heroFrame(st, t) {
     switch (st) {
@@ -459,7 +468,8 @@
         this.modeT++;
         // world keeps ticking for ambience (arrows, movers) but the player is out
         w.step({}); this.handleEvents(true);
-        var dur = this.mode === 'dying' ? 52 : 34;
+        if (this.modeT === (this.mode === 'dying' ? 10 : 4)) this.formEcho();
+        var dur = this.mode === 'dying' ? 46 : 34;
         if (this.modeT >= dur) this.respawn();
       } else if (this.mode === 'won') {
         this.modeT++;
@@ -516,16 +526,61 @@
     beginDeath: function () { this.mode = 'dying'; this.modeT = 0; this.world.p.state = 'dead'; },
     beginSacrifice: function () { this.mode = 'kneel'; this.modeT = 0; },
 
+    // The Echo materialises at the spot the attempt ended (~0.4s), then turns to stone.
+    formEcho: function () {
+      var self = this, w = this.world, cause = w.dead ? (w.deathCause === 'pit' ? 'pit' : 'death') : 'sacrifice';
+      if (cause === 'pit' || this.forming) return;
+      var f = w.echoFrame(cause), es = SIM.STATES[f[2]] || 'idle', ef = heroFrame(es, f[4]);
+      var x = Math.round(f[0] + P.w / 2), y = Math.round(f[1] + P.h), fl = !!f[3];
+      var v = this.makeEchoView({ id: 'forming' }); this.forming = v;
+      v.frozenShown = true; v.forming = true;
+      v.spr.setFrame(ef).setFlipX(fl).setPosition(x, y).setTintFill(0xdffcff).setAlpha(0).setScale(0.3, 1.7);
+      v.aura.setFrame(ef).setFlipX(fl).setPosition(x, y).setAlpha(0).setScale(2.2);
+      v.glow.setPosition(x, y - 15).setAlpha(0);
+      v.top.setPosition(x, f[1] + 0.5).setAlpha(0);
+      v.rune.setPosition(x, y - 6).setAlpha(0);
+      Snd.play('echo', 0.5, 1.15);
+      // pillar of light + converging motes
+      var col = this.add.image(x, y - 16, 'glow').setBlendMode(Phaser.BlendModes.ADD).setTint(0x8ff3ff).setScale(0.7, 2.6).setAlpha(0.95).setDepth(21);
+      this.tweens.add({ targets: col, scaleX: 0.05, alpha: 0, duration: 420, ease: 'Quad.easeIn', onComplete: function () { col.destroy(); } });
+      for (var i = 0; i < 12; i++) {
+        var a = i / 12 * Math.PI * 2 + Math.random() * 0.4, r = 26 + Math.random() * 14;
+        var m = this.add.image(x + Math.cos(a) * r, y - 15 + Math.sin(a) * r * 1.2, 'pix').setBlendMode(Phaser.BlendModes.ADD).setTint(0xbffaff).setScale(2).setDepth(22);
+        this.tweens.add({ targets: m, x: x, y: y - 15, scale: 0.5, duration: 300 + Math.random() * 80, ease: 'Quad.easeIn', onComplete: function (tw, t) { t[0].destroy(); } });
+      }
+      this.tweens.add({ targets: v.spr, scaleX: 1, scaleY: 1, alpha: 0.95, duration: 380, ease: 'Back.easeOut' });
+      this.tweens.add({ targets: v.aura, scale: 1.08, alpha: 0.5, duration: 380, ease: 'Quad.easeOut' });
+      this.tweens.add({ targets: v.glow, alpha: 0.5, duration: 300 });
+      this.time.delayedCall(400, function () {
+        if (!v.spr.active) return;
+        // petrify: the spectral light hardens into stone
+        v.forming = false;
+        v.spr.clearTint().setTint(ECHO_STONE); petrify(self, v.spr, 260);
+        self.tweens.add({ targets: v.aura, alpha: 0.2, scale: { from: 1.35, to: 1.08 }, duration: 260 });
+        v.top.setAlpha(0.9); v.rune.setAlpha(0.8);
+        self.fxShard.explode(8, x, y - 14); self.fxDust.explode(10, x, y); self.fxSoul.explode(8, x, y - 16);
+        Snd.play('thunk', 0.45, 0.6);
+        if (Save.data.shake) self.cameras.main.shake(90, 0.003);
+        var ring = self.add.image(x, y, 'glow').setBlendMode(Phaser.BlendModes.ADD).setTint(0x8ff3ff).setScale(0.3, 0.1).setDepth(22);
+        self.tweens.add({ targets: ring, scaleX: 1.5, scaleY: 0.35, alpha: 0, duration: 420, onComplete: function () { ring.destroy(); } });
+      });
+    },
+
     respawn: function () {
       var w = this.world, cause = w.dead ? (w.deathCause === 'pit' ? 'pit' : 'death') : 'sacrifice';
       var removed = w.commitEcho(cause);
+      var made = w.echoes[w.echoes.length - 1];
+      if (this.forming) {
+        if (made && made.cause === cause && !this.echoViews[made.id]) this.echoViews[made.id] = this.forming;
+        else { var fv = this.forming; [fv.spr, fv.aura, fv.glow, fv.top, fv.rune].forEach(function (o) { o.destroy(); }); }
+        this.forming = null;
+      }
       w.newAttempt();
       this.mode = 'play'; this.modeT = 0; this.acc = 0;
       this.syncAll(true);
       this.spawnFx(false);
-      Snd.play('echo', 0.45);
-      this.cameras.main.flash(260, 60, 140, 170);
-      var msg = cause === 'pit' ? 'The abyss keeps no Echo' : (removed ? 'Your oldest Echo fades' : 'An Echo remains');
+      this.cameras.main.flash(200, 60, 140, 170);
+      var msg = cause === 'pit' ? 'The abyss keeps no Echo' : (removed ? 'Your oldest Echo crumbles' : 'An Echo turns to stone');
       this.hud.toast(msg);
       this.hud.refresh();
     },
@@ -631,12 +686,13 @@
         if (e.frozen) {
           if (!v.frozenShown) {
             v.frozenShown = true;
-            v.spr.setTint(0x5fc8e8); self.fxSoul.explode(10, x, y - 15);
+            v.spr.setTint(ECHO_STONE); petrify(self, v.spr, 0); self.fxSoul.explode(10, x, y - 15);
             v.top.setAlpha(0.9); v.rune.setAlpha(0.8);
             self.tweens.add({ targets: v.aura, scale: { from: 1.5, to: 1.08 }, alpha: { from: 0.6, to: 0.28 }, duration: 380 });
           }
           var pulse = 0.5 + 0.5 * Math.sin(t / 420 + e.id);
-          v.spr.setAlpha(0.78 + pulse * 0.08); v.glow.setAlpha(0.26 + pulse * 0.12); v.top.setAlpha(0.55 + pulse * 0.35); v.rune.setAlpha(0.5 + pulse * 0.4);
+          if (v.forming) return;
+          if (!v.forming) { v.spr.setAlpha(0.9 + pulse * 0.06); v.glow.setAlpha(0.22 + pulse * 0.12); } v.top.setAlpha(0.55 + pulse * 0.35); v.rune.setAlpha(0.5 + pulse * 0.4);
         } else {
           if (v.frozenShown) { v.frozenShown = false; v.spr.setTint(0x7fdcff); v.top.setAlpha(0); v.rune.setAlpha(0); }
           v.spr.setAlpha(0.5 + 0.08 * Math.sin(t / 60 + e.id * 3));
@@ -939,7 +995,7 @@
       this.tweens.add({ targets: t1, y: 112, duration: 2400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       var orn = this.add.graphics(); orn.fillStyle(0xd89a3a, 0.9).fillRect(tx - 170, 186, 340, 2); orn.fillStyle(0xffd27a, 1).fillRect(tx - 5, 182, 10, 10);
       txt(this, tx, 210, 'THE  THORNBOUND  CITADEL', 20, PALE);
-      txt(this, tx, 244, 'Every death leaves an Echo. Climb upon your past.', 15, DIM);
+      txt(this, tx, 244, 'Where you fall, an Echo turns to stone. Climb upon your past.', 15, DIM);
       var cont = Save.data.unlocked > 1 || Object.keys(Save.data.stars).length;
       var by = 306;
       button(this, tx, by, 280, 50, cont ? 'Continue' : 'Begin', function () {
