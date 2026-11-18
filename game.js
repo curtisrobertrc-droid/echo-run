@@ -433,8 +433,11 @@
       var k = this.keys, t = this.touch;
       var left = k.LEFT.isDown || k.A.isDown || t.left, right = k.RIGHT.isDown || k.D.isDown || t.right;
       var jump = k.SPACE.isDown || k.UP.isDown || k.W.isDown || k.Z.isDown || t.jump;
-      var sacHeld = k.X.isDown || k.K.isDown || k.DOWN.isDown || k.S.isDown || t.sac;
-      var sac = sacHeld && !this.prevSac; this.prevSac = sacHeld;
+      // X / K / the skull button sacrifice anywhere, even mid-jump. Down / S only kneel on the ground,
+      // so a habitual "press down while falling" never throws away an attempt.
+      var anyHeld = k.X.isDown || k.K.isDown || t.sac, downHeld = k.DOWN.isDown || k.S.isDown;
+      var sac = (anyHeld && !this.prevSac) || (downHeld && !this.prevDown && this.world.p.grounded);
+      this.prevSac = anyHeld; this.prevDown = downHeld;
       if (this.autoInput) return this.autoInput();
       return { left: left, right: right, jump: jump, sac: sac };
     },
@@ -528,7 +531,7 @@
 
     // The Echo materialises at the spot the attempt ended (~0.4s), then turns to stone.
     formEcho: function () {
-      var self = this, w = this.world, cause = w.dead ? (w.deathCause === 'pit' ? 'pit' : 'death') : 'sacrifice';
+      var self = this, w = this.world, cause = w.endCause();
       if (cause === 'pit' || this.forming) return;
       var f = w.echoFrame(cause), es = SIM.STATES[f[2]] || 'idle', ef = heroFrame(es, f[4]);
       var x = Math.round(f[0] + P.w / 2), y = Math.round(f[1] + P.h), fl = !!f[3];
@@ -567,7 +570,7 @@
     },
 
     respawn: function () {
-      var w = this.world, cause = w.dead ? (w.deathCause === 'pit' ? 'pit' : 'death') : 'sacrifice';
+      var w = this.world, cause = w.endCause(), wasAir = w.sacAir;
       var removed = w.commitEcho(cause);
       var made = w.echoes[w.echoes.length - 1];
       if (this.forming) {
@@ -580,7 +583,7 @@
       this.syncAll(true);
       this.spawnFx(false);
       this.cameras.main.flash(200, 60, 140, 170);
-      var msg = cause === 'pit' ? 'The abyss keeps no Echo' : (removed ? 'Your oldest Echo crumbles' : 'An Echo turns to stone');
+      var msg = cause === 'pit' || (made && made.gone) ? 'The abyss keeps no Echo' : (removed ? 'Your oldest Echo crumbles' : (wasAir ? 'Your Echo hangs in the air' : 'An Echo turns to stone'));
       this.hud.toast(msg);
       this.hud.refresh();
     },
@@ -656,7 +659,7 @@
     render: function (delta) {
       var self = this, w = this.world, p = w.p, t = this.time.now;
       // player
-      var st = this.mode === 'dying' ? 'dead' : (this.mode === 'kneel' ? 'kneel' : p.state);
+      var st = this.mode === 'dying' ? 'dead' : (this.mode === 'kneel' && !w.sacAir ? 'kneel' : p.state);
       var fr = st === 'dead' ? 21 + Math.min(2, Math.floor(this.modeT / 6)) : st === 'kneel' ? 24 + Math.min(2, Math.floor(this.modeT / 5)) : heroFrame(st, p.animT);
       this.pl.setFrame(fr).setFlipX(p.flip);
       this.sq.x += (1 - this.sq.x) * 0.2; this.sq.y += (1 - this.sq.y) * 0.2;
@@ -1005,7 +1008,7 @@
       button(this, tx, by + 62, 280, 44, 'Chambers', function () { fadeTo(self, 'Select'); });
       button(this, tx - 72, by + 118, 136, 40, 'Settings', function () { openSettings(self); }, { size: 17 });
       button(this, tx + 72, by + 118, 136, 40, 'Credits', function () { openCredits(self); }, { size: 17 });
-      txt(this, tx, VH - 28, '\u2605 ' + Save.totalStars() + ' / ' + LEVELS.length * 3 + '      \u2190 \u2192 move  \u00b7  SPACE jump  \u00b7  X sacrifice', 14, DIM);
+      txt(this, tx, VH - 28, '\u2605 ' + Save.totalStars() + ' / ' + LEVELS.length * 3 + '      \u2190 \u2192 move  \u00b7  SPACE jump  \u00b7  X sacrifice (even mid-air)', 14, DIM);
       this.cameras.main.fadeIn(500, 5, 3, 10);
       if (this.sound.locked) this.sound.once('unlocked', function () { Snd.musicFor('music_menu', self); }); else Snd.musicFor('music_menu', this);
       if (this.showCredits) this.time.delayedCall(300, function () { openCredits(self); });

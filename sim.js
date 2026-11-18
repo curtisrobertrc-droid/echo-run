@@ -71,7 +71,7 @@
     this.t = 0;
     this.events = [];
     this.arrows = [];
-    this.dead = false; this.deathCause = null; this.ended = false;
+    this.dead = false; this.deathCause = null; this.ended = false; this.sacAir = false;
     var p = this.p = { x: L.start.x, y: L.start.y, vx: 0, vy: 0, grounded: true, coyote: 0, buffer: 0, flip: false,
       jumpHeld: false, ground: null, state: 'idle', animT: 0, stepT: 0 };
     this.rec = [];
@@ -83,11 +83,16 @@
     this.updateGates(true);
   };
 
+  // How the attempt ended. A mid-air Sacrifice below the bottom of the chamber counts as the abyss (no Echo).
+  W.endCause = function () {
+    if (this.dead) return this.deathCause === 'pit' ? 'pit' : 'death';
+    return this.p.y + P.h > this.L.ph ? 'pit' : 'sacrifice';
+  };
   // The pose an Echo takes when it forms: exactly where (and how) this attempt ended.
   W.echoFrame = function (cause) {
     var p = this.p, last = this.rec[this.rec.length - 1] || [p.x, p.y, 0, p.flip ? 1 : 0, 0];
-    var st = cause === 'sacrifice' ? STATES.indexOf('kneel') : (last[2] === STATES.indexOf('dead') ? 0 : last[2]);
-    return [Math.round(p.x * 100) / 100, Math.round(p.y * 100) / 100, st, p.flip ? 1 : 0, cause === 'sacrifice' ? 0 : last[4]];
+    var st = cause === 'sacrifice' ? (this.sacAir ? last[2] : STATES.indexOf('kneel')) : (last[2] === STATES.indexOf('dead') ? 0 : last[2]);
+    return [Math.round(p.x * 100) / 100, Math.round(p.y * 100) / 100, st, p.flip ? 1 : 0, cause === 'sacrifice' && !this.sacAir ? 0 : last[4]];
   };
   // turn the attempt that just ended into an Echo (cause: 'death' | 'pit' | 'sacrifice').
   // Echoes no longer replay the attempt: they form at the spot it ended and are stone from the first frame.
@@ -264,8 +269,12 @@
     if (!inp.jump && p.jumpHeld && p.vy < 0) p.vy *= P.jumpCut;
     p.jumpHeld = !!inp.jump;
     // sacrifice
-    if (inp.sac && p.grounded) { this.ended = true; p.state = 'kneel'; this.events.push({ type: 'sacrifice', x: p.x + P.w / 2, y: p.y + P.h / 2 });
-      this.rec.push([p.x, p.y, STATES.indexOf('kneel'), p.flip ? 1 : 0, p.animT]); return; }
+    // sacrifice: on the ground you kneel; in mid-air the Echo hangs exactly where you are (v1.2)
+    if (inp.sac) {
+      var air = !p.grounded; this.ended = true; this.sacAir = air;
+      if (!air) p.state = 'kneel';
+      this.events.push({ type: 'sacrifice', air: air, x: p.x + P.w / 2, y: p.y + P.h / 2 });
+      this.rec.push([p.x, p.y, STATES.indexOf(p.state), p.flip ? 1 : 0, p.animT]); return; }
     p.vy = Math.min(P.maxFall, p.vy + P.grav);
     this.moveX(p.vx);
     var wasGrounded = p.grounded, vyBefore = p.vy;

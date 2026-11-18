@@ -27,7 +27,7 @@
     intro: 'The Thornbrand curse will not let you die. Where you fall, an Echo forms: solid stone you can climb.',
     hint: 'Stand next to the tall wall and press X (or the skull button) to Sacrifice. Then jump onto your Echo.',
     tips: [{ x: 4, y: 11, text: '\u2190 \u2192  move' }, { x: 11, y: 10, text: 'SPACE  jump' },
-      { x: 20, y: 8, text: 'Too high? Press X to Sacrifice.\nYour Echo stays behind.' }, { x: 31, y: 7, text: 'Climb upon your past self.' }],
+      { x: 20, y: 8, text: 'Too high? Press X to Sacrifice.\nYour Echo stays behind, even mid-air.' }, { x: 31, y: 7, text: 'Climb upon your past self.' }],
     map: B(44, 17).r(0, 15, 25, 16).r(18, 15, 19, 16, '.').r(10, 13, 13, 14).r(26, 11, 43, 16)
       .p(3, 14, 'P').p(40, 10, 'E').t([[6, 11], [16, 10], [23, 11], [33, 7], [41, 7]]).done() });
 
@@ -47,9 +47,9 @@
 
   // 4 ─ A Stair of Selves: stack Echoes
   L.push({ name: 'A Stair of Selves', wing: 0, par: 2, maxEchoes: 3,
-    hint: 'Sacrifice by the wall, then stand on that Echo and Sacrifice again. Two Echoes make a stair.',
-    tips: [{ x: 8, y: 10, text: 'An Echo can stand upon an Echo.' }],
-    map: B(36, 17).r(0, 15, 35, 16).r(22, 9, 35, 16).p(3, 14, 'P').p(31, 8, 'E')
+    hint: 'Sacrifice by the wall. Then stand on that Echo, hop straight up and press X in mid-air: the floating Echo is your top step.',
+    tips: [{ x: 8, y: 10, text: 'An Echo can stand upon an Echo.' }, { x: 15, y: 8, text: 'Sacrifice mid-jump (X or skull):\nyour Echo hangs in the air.' }],
+    map: B(36, 17).r(0, 15, 35, 16).r(22, 8, 35, 16).p(3, 14, 'P').p(31, 7, 'E')
       .t([[6, 11], [14, 9], [20, 7], [27, 5]]).done() });
 
   // 5 ─ Iron Rain: arrows, ducking, Echo shields
@@ -70,7 +70,7 @@
 
   // 7 ─ Frozen in Air: an Echo freezes where it ended, even mid-air
   L.push({ name: 'Frozen in Air', wing: 1, par: 1, maxEchoes: 2,
-    hint: 'Ride the platform to the top and Sacrifice there. Your Echo stays in the air when the platform leaves.',
+    hint: 'Ride the platform to the top and Sacrifice there. Your Echo stays in the air when the platform leaves. (A Sacrifice mid-jump floats too.)',
     tips: [{ x: 3, y: 10, text: 'An Echo stays where it ended.' }],
     movers: { 1: { at: [10, 15], dx: 0, dy: -6, speed: 0.9, wait: 50 } },
     map: B(30, 17).r(0, 15, 29, 16).r(10, 15, 19, 15, '^').r(14, 5, 29, 5).p(27, 4, 'E').p(4, 14, 'P')
@@ -103,10 +103,10 @@
 
   // 11 ─ Gauntlet of Hours: arrows, then a climb that needs two Echoes
   L.push({ name: 'Gauntlet of Hours', wing: 2, par: 2, maxEchoes: 3,
-    hint: 'Reach the shaft and Sacrifice: that Echo shields the hall. Then stand on it and Sacrifice again to build a stair.',
+    hint: 'Reach the shaft and Sacrifice: that Echo shields the hall. Then stand on it, hop, and Sacrifice in mid-air for a floating top step.',
     launchers: [{ period: 160, offset: 40, speed: 2.6 }],
     map: B(40, 17).r(0, 15, 39, 16).r(1, 1, 31, 11).r(1, 7, 6, 11, '.').r(11, 15, 12, 15, '.').r(18, 15, 19, 15, '.').r(25, 15, 26, 15, '.')
-      .r(36, 9, 38, 11).p(38, 13, '<').r(32, 1, 38, 2).p(37, 8, 'E').r(1, 13, 4, 14).p(2, 12, 'P').r(33, 3, 34, 3, 'v')
+      .r(36, 8, 38, 11).p(38, 13, '<').r(32, 1, 38, 2).p(37, 7, 'E').r(1, 13, 4, 14).p(2, 12, 'P').r(33, 3, 34, 3, 'v')
       .t([[3, 9], [9, 13], [22, 13], [35, 5]]).done() });
 
   // 12 ─ The Spire Crown: a held seal, then a statue left hanging over the thorns
